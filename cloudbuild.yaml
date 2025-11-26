@@ -1,0 +1,42 @@
+substitutions:
+  _REGION: asia-southeast1        # change to your Cloud Run region
+  _SERVICE: custom-object-extractor
+  _AR_REPO: containers            # Artifact Registry repo name (create first)
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/custom-object-extractor:${SHORT_SHA}
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/custom-object-extractor:latest
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/custom-object-extractor:${SHORT_SHA}
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/custom-object-extractor:latest
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/custom-object-extractor:${SHORT_SHA}
+      - --region
+      - ${_REGION}
+      - --platform
+      - managed
+      - --allow-unauthenticated
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/custom-object-extractor:${SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/custom-object-extractor:latest
