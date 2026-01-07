@@ -133,7 +133,7 @@ function resolvePath(urlPath = "/") {
 }
 
 async function fetchViaAvailableBase({ apiKey, objectKey, continuationToken }) {
-  const basesToTry = pinnedBaseUrl ? [pinnedBaseUrl] : BASE_URLS;
+  const basesToTry = getBasesToTry();
   const errors = [];
 
   for (const base of basesToTry) {
@@ -152,11 +152,8 @@ async function fetchViaAvailableBase({ apiKey, objectKey, continuationToken }) {
       }
 
       errors.push({ base, status: resp.status, body: resp.body });
-      // If we had a pinned base and it failed, break to avoid cycling.
-      if (pinnedBaseUrl) break;
     } catch (err) {
       errors.push({ base, error: err.message });
-      if (pinnedBaseUrl) break;
     }
   }
 
@@ -172,7 +169,7 @@ async function fetchViaAvailableBase({ apiKey, objectKey, continuationToken }) {
 }
 
 async function postViaAvailableBase({ apiKey, payload }) {
-  const basesToTry = pinnedBaseUrl ? [pinnedBaseUrl] : BASE_URLS;
+  const basesToTry = getBasesToTry();
   const errors = [];
 
   for (const base of basesToTry) {
@@ -197,10 +194,8 @@ async function postViaAvailableBase({ apiKey, payload }) {
       }
 
       errors.push({ base, status: resp.status, body });
-      if (pinnedBaseUrl) break;
     } catch (err) {
       errors.push({ base, error: err.message });
-      if (pinnedBaseUrl) break;
     }
   }
 
@@ -208,6 +203,11 @@ async function postViaAvailableBase({ apiKey, payload }) {
     status: 502,
     body: JSON.stringify({ error: "All base URLs failed", attempts: errors })
   };
+}
+
+function getBasesToTry() {
+  if (!pinnedBaseUrl) return BASE_URLS;
+  return [pinnedBaseUrl, ...BASE_URLS.filter(base => base !== pinnedBaseUrl)];
 }
 
 // The upstream expects GET with a JSON body; native fetch disallows GET bodies,
